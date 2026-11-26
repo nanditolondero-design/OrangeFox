@@ -80,7 +80,7 @@ jobs:
           export LC_ALL=C
           export FOX_BUILD_DEVICE=cypfq
           source build/envsetup.sh
-          lunch twrp_cypfq-eng
+          lunch twrp_cypfq-ap2a-eng
           mka bootimage -j"$(nproc)" 2>&1 | tee "$HOME/build.log"
           set -e
           test -f out/target/product/cypfq/boot.img
