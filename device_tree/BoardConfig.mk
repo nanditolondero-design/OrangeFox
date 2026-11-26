@@ -1,0 +1,99 @@
+DEVICE_PATH := device/motorola/cypfq
+
+# Arquitectura (de sm6375-common)
+TARGET_ARCH := arm64
+TARGET_ARCH_VARIANT := armv8-a
+TARGET_CPU_ABI := arm64-v8a
+TARGET_CPU_ABI2 :=
+TARGET_CPU_VARIANT := generic
+TARGET_CPU_VARIANT_RUNTIME := kryo385
+TARGET_2ND_ARCH := arm
+TARGET_2ND_ARCH_VARIANT := armv8-a
+TARGET_2ND_CPU_ABI := armeabi-v7a
+TARGET_2ND_CPU_ABI2 := armeabi
+TARGET_2ND_CPU_VARIANT := generic
+TARGET_2ND_CPU_VARIANT_RUNTIME := kryo385
+
+# Plataforma
+TARGET_BOARD_PLATFORM := holi
+TARGET_BOOTLOADER_BOARD_NAME := cypfq
+TARGET_NO_BOOTLOADER := true
+BOARD_USES_QCOM_HARDWARE := true
+TARGET_OTA_ASSERT_DEVICE := cypfq
+
+# Kernel PRECOMPILADO (sacado de tu boot.img; es un 5.4.302 propio)
+# Header v3: la dtb y la cmdline viven en vendor_boot, que NO se toca.
+BOARD_BOOT_HEADER_VERSION := 3
+BOARD_KERNEL_BASE := 0x00000000
+BOARD_KERNEL_PAGESIZE := 4096
+BOARD_KERNEL_IMAGE_NAME := Image
+BOARD_MKBOOTIMG_ARGS += --header_version $(BOARD_BOOT_HEADER_VERSION)
+BOARD_RAMDISK_USE_LZ4 := true
+TARGET_NO_KERNEL := false
+TARGET_PREBUILT_KERNEL := $(DEVICE_PATH)/prebuilt/Image
+BOARD_KERNEL_CMDLINE :=
+
+# El recovery va dentro de boot (igual que el de LineageOS en este equipo)
+BOARD_USES_RECOVERY_AS_BOOT := true
+TARGET_NO_RECOVERY := true
+BOARD_BOOTIMAGE_PARTITION_SIZE := 100663296
+BOARD_VENDOR_BOOTIMAGE_PARTITION_SIZE := 100663296
+
+# A/B + particiones dinamicas
+AB_OTA_UPDATER := true
+AB_OTA_PARTITIONS += boot dtbo product system system_ext vbmeta vbmeta_system vendor vendor_boot
+BOARD_SUPER_PARTITION_GROUPS := mot_dp_group
+BOARD_MOT_DP_GROUP_PARTITION_LIST := product system system_ext vendor
+# OJO: tamanos tomados del arbol de fogo; verificar con "fastboot getvar super-partition-size"
+BOARD_SUPER_PARTITION_SIZE := 6710886400
+BOARD_MOT_DP_GROUP_SIZE := 6706692096
+BOARD_USES_METADATA_PARTITION := true
+BOARD_FLASH_BLOCK_SIZE := 262144
+TARGET_COPY_OUT_PRODUCT := product
+TARGET_COPY_OUT_SYSTEM_EXT := system_ext
+TARGET_COPY_OUT_VENDOR := vendor
+BOARD_SYSTEMIMAGE_FILE_SYSTEM_TYPE := ext4
+BOARD_PRODUCTIMAGE_FILE_SYSTEM_TYPE := ext4
+BOARD_SYSTEM_EXTIMAGE_FILE_SYSTEM_TYPE := ext4
+BOARD_VENDORIMAGE_FILE_SYSTEM_TYPE := ext4
+TARGET_USERIMAGES_USE_EXT4 := true
+TARGET_USERIMAGES_USE_F2FS := true
+
+# AVB: tu vbmeta ya tiene flags=3 (verificacion desactivada)
+BOARD_AVB_ENABLE := true
+
+# fstab
+TARGET_RECOVERY_FSTAB := $(DEVICE_PATH)/recovery.fstab
+TARGET_RECOVERY_PIXEL_FORMAT := RGBX_8888
+
+# Sistema / parches (valores altos para que el cifrado no los rechace)
+PLATFORM_VERSION := 16.1.0
+PLATFORM_VERSION_LAST_STABLE := $(PLATFORM_VERSION)
+PLATFORM_SECURITY_PATCH := 2099-12-31
+VENDOR_SECURITY_PATCH := $(PLATFORM_SECURITY_PATCH)
+BOOT_SECURITY_PATCH := $(PLATFORM_SECURITY_PATCH)
+
+# ---- TWRP / OrangeFox ----
+TW_THEME := portrait_hdpi
+TARGET_RECOVERY_DENSITY := hdpi
+TW_EXTRA_LANGUAGES := true
+TW_INCLUDE_FASTBOOTD := true
+TW_INCLUDE_RESETPROP := true
+TW_INCLUDE_REPACKTOOLS := true
+TW_USE_TOOLBOX := true
+TW_INCLUDE_NTFS_3G := true
+TARGET_USES_MKE2FS := true
+RECOVERY_SDCARD_ON_DATA := true
+TARGET_RECOVERY_QCOM_RTC_FIX := true
+TW_NO_SCREEN_BLANK := true
+TW_EXCLUDE_APEX := true
+TW_HAS_NO_RECOVERY_PARTITION := true
+TARGET_USES_LOGD := true
+
+# Cifrado de /data (FBE v2 + metadata, claves envueltas por hardware).
+# Es la parte mas delicada: puede no descifrar en la primera version.
+TW_INCLUDE_CRYPTO := true
+TW_INCLUDE_CRYPTO_FBE := true
+TW_INCLUDE_FBE_METADATA_DECRYPT := true
+TW_USE_FSCRYPT_POLICY := 2
+BOARD_USES_QCOM_FBE_DECRYPTION := true
