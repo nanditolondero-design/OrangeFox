@@ -1,0 +1,87 @@
+name: Build OrangeFox cypfq
+
+on:
+  workflow_dispatch:
+    inputs:
+      fox_branch:
+        description: "Rama de OrangeFox (14.1 por defecto)"
+        default: "14.1"
+        required: true
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Liberar espacio en disco
+        uses: jlumbroso/free-disk-space@v1.3.1
+        with:
+          tool-cache: true
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: false
+          docker-images: true
+          swap-storage: true
+
+      - name: Instalar dependencias
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y git gnupg flex bison build-essential zip curl zlib1g-dev \
+            libc6-dev-i386 libncurses5 x11proto-core-dev libx11-dev lib32z1-dev \
+            libgl1-mesa-dev libxml2-utils xsltproc unzip fontconfig python3 \
+            python-is-python3 bc ccache rsync lz4 libssl-dev cpio openjdk-11-jdk
+          sudo curl -s https://storage.googleapis.com/git-repo-downloads/repo -o /usr/local/bin/repo
+          sudo chmod a+rx /usr/local/bin/repo
+          git config --global user.name "builder"
+          git config --global user.email "builder@users.noreply.github.com"
+          git config --global color.ui false
+
+      - name: Sincronizar fuentes de OrangeFox
+        run: |
+          git clone --depth=1 https://gitlab.com/OrangeFox/sync.git "$HOME/sync"
+          cd "$HOME/sync"
+          ./orangefox_sync.sh --branch "${{ inputs.fox_branch }}" --path "$HOME/fox"
+
+      - name: Copiar device tree y kernel
+        run: |
+          D="$HOME/fox/device/motorola/cypfq"
+          mkdir -p "$D"
+          cp -r "$GITHUB_WORKSPACE/device_tree/." "$D/"
+          gunzip -c "$D/prebuilt/Image.gz" > "$D/prebuilt/Image"
+          rm "$D/prebuilt/Image.gz"
+          ls -la "$D" "$D/prebuilt"
+
+      - name: Compilar OrangeFox (boot.img)
+        run: |
+          cd "$HOME/fox"
+          set +e
+          export ALLOW_MISSING_DEPENDENCIES=true
+          export LC_ALL=C
+          export FOX_BUILD_DEVICE=cypfq
+          source build/envsetup.sh
+          lunch twrp_cypfq-eng
+          mka bootimage -j"$(nproc)" 2>&1 | tee "$HOME/build.log"
+          set -e
+          test -f out/target/product/cypfq/boot.img
+
+      - name: Reunir resultados
+        if: always()
+        run: |
+          mkdir -p "$HOME/result"
+          P="$HOME/fox/out/target/product/cypfq"
+          cp "$P/boot.img" "$HOME/result/orangefox-cypfq-boot.img" 2>/dev/null || true
+          cp "$P"/OrangeFox*.zip "$HOME/result/" 2>/dev/null || true
+          cp "$HOME/build.log" "$HOME/result/" 2>/dev/null || true
+          cp "$HOME/fox/out/error.log" "$HOME/result/" 2>/dev/null || true
+          ls -la "$HOME/result"
+
+      - name: Subir resultados
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: orangefox-cypfq
+          path: /home/runner/result/*
+          if-no-files-found: warn
