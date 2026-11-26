@@ -8,12 +8,30 @@ on:
         default: "14.1"
         required: true
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-22.04
     timeout-minutes: 360
     steps:
       - uses: actions/checkout@v4
+
+      - name: Descomprimir of.zip y copiar su contenido al repo
+        run: |
+          test -f of.zip || { echo "Falta of.zip en la raiz del repo"; exit 1; }
+          # Se excluye .github: el token del workflow no puede modificar workflows
+          unzip -o of.zip -x '.github/*' -d .
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "El repo ya tiene el contenido de of.zip"
+          else
+            git commit -m "Agregar contenido de of.zip"
+            git push
+          fi
 
       - name: Liberar espacio en disco
         uses: jlumbroso/free-disk-space@v1.3.1
